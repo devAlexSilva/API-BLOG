@@ -4,32 +4,55 @@ const postsService = require('../service/postsService');
 
 const generation = {
     small: ()=>{return crypto.randomBytes(5).toString('hex')},
-    tall: ()=>{return crypto.randomBytes(20).toString('hex')}
-    
+    big: ()=>{return crypto.randomBytes(20).toString('hex')}    
 }
 
-test.only('save posts', async()=>{
-    const dataPost = await postsService.savePosts({ title: generation.small, content: generation.tall });
-    
-    const res = await axios({
-        url: 'http://localhost:3000/posts',
-        method: 'GET'
-    },)
+const baseUrl =  'http://localhost:3000/posts/';
 
-    const posts = res.data;  
+const req = (url, method, data)=>{
+    return axios({ url, method, data });
+}
+
+test('save posts', async()=>{
+    const dataPost = { title: generation.small(), content: generation.big() };
+    
+    const res = await req(baseUrl, 'POST', dataPost);
+      
+    const posts = res.data;
+    expect(posts.title).toBe(dataPost.title);
+    await postsService.deletePosts(posts.id);
+});
+
+
+test('read posts', async()=>{
+    const dataPost = await postsService.savePosts({ title: generation.small(), content: generation.big() });
+    
+    const res = await req(baseUrl, 'GET');
+    
+    const posts = res.data;
     expect(posts).toHaveLength(1);
     await postsService.deletePosts(dataPost.id);
+});
+
+
+test('update posts', async()=>{
+    const dataPost = await postsService.savePosts({ title: generation.small(), content: generation.big() });
+    const newDataPost = { title: generation.small(), content: generation.big() };
+
+    await req(baseUrl+dataPost.id, 'PUT', newDataPost);
     
+    const updatedPost = await postsService.getPostOne(dataPost.id);
+    expect(updatedPost.title).toBe(newDataPost.title);
+    await postsService.deletePosts(dataPost.id);
 });
 
 
+test('delete posts', async()=>{
+    const dataPost = { title: generation.small(), content: generation.big() }; 
+    const post = await postsService.savePosts(dataPost);
 
-test('get posts', async()=>{
-    const res = await axios({
-        url: 'http://localhost:3000/posts',
-        method: 'GET'
-    });
-    const posts = res.data;
-    console.log(posts)
-    expect(posts[0].id).toBe(1);
-});
+    await req(baseUrl+post.id, 'DELETE');
+
+    const isPost = await postsService.getPosts();
+    expect(isPost).toHaveLength(0);
+})
