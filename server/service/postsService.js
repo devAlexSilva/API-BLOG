@@ -4,3 +4,11 @@ const postsData = require('../data/postsData');
 exports.getPosts = ()=>{
     return postsData.getPosts();
 }
+
+exports.savePosts = (post)=>{
+    return postsData.savePosts(post);
+}
+
+exports.deletePosts = (id)=>{
+    return postsData.deletePosts(id);
+}
